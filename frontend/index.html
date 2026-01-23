@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Summary Generator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            background-color: #2c3e50;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.8;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            background-color: #ddd;
+            cursor: pointer;
+            font-size: 1rem;
+            border-radius: 8px 8px 0 0;
+            transition: background-color 0.3s;
+        }
+
+        .tab-button:hover {
+            background-color: #ccc;
+        }
+
+        .tab-button.active {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: white;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        input[type="file"] {
+            padding: 10px 0;
+        }
+
+        .drop-zone {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .drop-zone:hover {
+            background-color: #f0f8ff;
+        }
+
+        .drop-zone.drag-over {
+            background-color: #e1f0ff;
+            border-color: #2980b9;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-primary:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #219a52;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .results-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: inherit;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.visible {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background-color: #fee;
+            border: 1px solid #fcc;
+            color: #c00;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .success-message {
+            background-color: #efe;
+            border: 1px solid #cfc;
+            color: #060;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .success-message.visible {
+            display: block;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Document Summary Generator</h1>
+            <p>Upload documents, paste URLs, or format Zoom summaries for Notion</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('pdf')">PDF Upload</button>
+            <button class="tab-button" onclick="switchTab('url')">URL Extract</button>
+            <button class="tab-button" onclick="switchTab('zoom')">Zoom Summary</button>
+        </div>
+
+        <!-- PDF Upload Tab -->
+        <div id="pdf-tab" class="tab-content active">
+            <h2>Upload PDF Document</h2>
+            <p style="margin-bottom: 20px; color: #666;">Upload a PDF file to extract text and generate a summary.</p>
+            
+            <div class="form-group">
+                <div class="drop-zone" id="drop-zone" onclick="document.getElementById('pdf-input').click();">
+                    <p>📄 Drag & drop a PDF here, or click to select</p>
+                    <input type="file" id="pdf-input" accept=".pdf" style="display: none;" onchange="handleFileSelect(this)">
+                </div>
+                <p class="file-name" id="file-name"></p>
+            </div>
+
+            <button class="btn btn-primary" id="pdf-submit" onclick="processPDF()" disabled>Extract & Summarize</button>
+
+            <div class="loading" id="pdf-loading">
+                <div class="spinner"></div>
+                <p>Processing your PDF... This may take a moment for large files.</p>
+            </div>
+
+            <div class="error-message" id="pdf-error"></div>
+
+            <div class="results-section" id="pdf-results">
+                <div class="results-header">
+                    <h3>Summary Result</h3>
+                    <button class="btn btn-success" onclick="copyToClipboard('pdf-output')">📋 Copy to Clipboard</button>
+                </div>
+                <div class="results-box" id="pdf-output"></div>
+                <div class="success-message" id="pdf-copy-success">Copied to clipboard!</div>
+            </div>
+        </div>
+
+        <!-- URL Extract Tab -->
+        <div id="url-tab" class="tab-content">
+            <h2>Extract from URL</h2>
+            <p style="margin-bottom: 20px; color: #666;">Paste a web page URL to extract its content and generate a summary.</p>
+            
+            <div class="form-group">
+                <label for="url-input">Web Page URL</label>
+                <input type="text" id="url-input" placeholder="https://example.com/article">
+            </div>
+
+            <button class="btn btn-primary" onclick="processURL()">Extract & Summarize</button>
+
+            <div class="loading" id="url-loading">
+                <div class="spinner"></div>
+                <p>Fetching and processing the web page...</p>
+            </div>
+
+            <div class="error-message" id="url-error"></div>
+
+            <div class="results-section" id="url-results">
+                <div class="results-header">
+                    <h3>Summary Result</h3>
+                    <button class="btn btn-success" onclick="copyToClipboard('url-output')">📋 Copy to Clipboard</button>
+                </div>
+                <div class="results-box" id="url-output"></div>
+                <div class="success-message" id="url-copy-success">Copied to clipboard!</div>
+            </div>
+        </div>
+
+        <!-- Zoom Summary Tab -->
+        <div id="zoom-tab" class="tab-content">
+            <h2>Format Zoom Summary</h2>
+            <p style="margin-bottom: 20px; color: #666;">Paste a Zoom meeting summary from email and format it for Notion.</p>
+            
+            <div class="form-group">
+                <label for="meeting-name">Meeting Name</label>
+                <input type="text" id="meeting-name" placeholder="Weekly Team Standup - January 23, 2026">
+            </div>
+
+            <div class="form-group">
+                <label for="meeting-type">Meeting Type</label>
+                <input type="text" id="meeting-type" placeholder="Team Meeting, Client Call, etc.">
+            </div>
+
+            <div class="form-group">
+                <label for="zoom-summary">Zoom Summary (paste from email)</label>
+                <textarea id="zoom-summary" placeholder="Paste the Zoom meeting summary here..."></textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="processZoom()">Format for Notion</button>
+
+            <div class="loading" id="zoom-loading">
+                <div class="spinner"></div>
+                <p>Formatting your summary...</p>
+            </div>
+
+            <div class="error-message" id="zoom-error"></div>
+
+            <div class="results-section" id="zoom-results">
+                <div class="results-header">
+                    <h3>Formatted Result</h3>
+                    <button class="btn btn-success" onclick="copyToClipboard('zoom-output')">📋 Copy to Clipboard</button>
+                </div>
+                <div class="results-box" id="zoom-output"></div>
+                <div class="success-message" id="zoom-copy-success">Copied to clipboard!</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+
+        // Tab switching
+        function switchTab(tab) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tab + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // File handling
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                selectedFile = input.files[0];
+                document.getElementById('file-name').textContent = 'Selected: ' + selectedFile.name;
+                document.getElementById('pdf-submit').disabled = false;
+            }
+        }
+
+        // Drag and drop
+        const dropZone = document.getElementById('drop-zone');
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                selectedFile = e.dataTransfer.files[0];
+                document.getElementById('file-name').textContent = 'Selected: ' + selectedFile.name;
+                document.getElementById('pdf-submit').disabled = false;
+            }
+        });
+
+        // Process PDF
+        async function processPDF() {
+            if (!selectedFile) return;
+
+            showLoading('pdf');
+            hideError('pdf');
+            hideResults('pdf');
+
+            try {
+                // Step 1: Upload PDF and extract text
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                const extractResponse = await fetch('/upload-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const extractData = await extractResponse.json();
+
+                if (extractData.error) {
+                    throw new Error(extractData.error);
+                }
+
+                // Step 2: Summarize the extracted text
+                const summarizeResponse = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: extractData.extracted_text,
+                        source_type: 'pdf'
+                    })
+                });
+
+                const summarizeData = await summarizeResponse.json();
+
+                if (summarizeData.error) {
+                    throw new Error(summarizeData.error);
+                }
+
+                // Display results
+                document.getElementById('pdf-output').textContent = summarizeData.summary;
+                showResults('pdf');
+
+            } catch (error) {
+                showError('pdf', error.message);
+            } finally {
+                hideLoading('pdf');
+            }
+        }
+
+        // Process URL
+        async function processURL() {
+            const url = document.getElementById('url-input').value.trim();
+            
+            if (!url) {
+                showError('url', 'Please enter a URL');
+                return;
+            }
+
+            showLoading('url');
+            hideError('url');
+            hideResults('url');
+
+            try {
+                // Step 1: Extract text from URL
+                const extractResponse = await fetch('/extract-url', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const extractData = await extractResponse.json();
+
+                if (extractData.error) {
+                    throw new Error(extractData.error);
+                }
+
+                // Step 2: Summarize the extracted text
+                const summarizeResponse = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: extractData.extracted_text,
+                        source_type: 'url'
+                    })
+                });
+
+                const summarizeData = await summarizeResponse.json();
+
+                if (summarizeData.error) {
+                    throw new Error(summarizeData.error);
+                }
+
+                // Display results
+                document.getElementById('url-output').textContent = summarizeData.summary;
+                showResults('url');
+
+            } catch (error) {
+                showError('url', error.message);
+            } finally {
+                hideLoading('url');
+            }
+        }
+
+        // Process Zoom
+        async function processZoom() {
+            const meetingName = document.getElementById('meeting-name').value.trim();
+            const meetingType = document.getElementById('meeting-type').value.trim();
+            const zoomSummary = document.getElementById('zoom-summary').value.trim();
+
+            if (!meetingName || !meetingType || !zoomSummary) {
+                showError('zoom', 'Please fill in all fields');
+                return;
+            }
+
+            showLoading('zoom');
+            hideError('zoom');
+            hideResults('zoom');
+
+            try {
+                const response = await fetch('/format-zoom', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        meeting_name: meetingName,
+                        meeting_type: meetingType,
+                        zoom_summary: zoomSummary
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Display results
+                document.getElementById('zoom-output').textContent = data.formatted_output;
+                showResults('zoom');
+
+            } catch (error) {
+                showError('zoom', error.message);
+            } finally {
+                hideLoading('zoom');
+            }
+        }
+
+        // Copy to clipboard
+        async function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            
+            try {
+                await navigator.clipboard.writeText(text);
+                
+                // Show success message
+                const tab = elementId.split('-')[0];
+                const successMsg = document.getElementById(tab + '-copy-success');
+                successMsg.classList.add('visible');
+                
+                setTimeout(() => {
+                    successMsg.classList.remove('visible');
+                }, 2000);
+            } catch (err) {
+                alert('Failed to copy to clipboard');
+            }
+        }
+
+        // Helper functions
+        function showLoading(tab) {
+            document.getElementById(tab + '-loading').classList.add('visible');
+        }
+
+        function hideLoading(tab) {
+            document.getElementById(tab + '-loading').classList.remove('visible');
+        }
+
+        function showError(tab, message) {
+            const errorEl = document.getElementById(tab + '-error');
+            errorEl.textContent = message;
+            errorEl.classList.add('visible');
+        }
+
+        function hideError(tab) {
+            document.getElementById(tab + '-error').classList.remove('visible');
+        }
+
+        function showResults(tab) {
+            document.getElementById(tab + '-results').classList.add('visible');
+        }
+
+        function hideResults(tab) {
+            document.getElementById(tab + '-results').classList.remove('visible');
+        }
+    </script>
+</body>
+</html>
